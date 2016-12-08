@@ -87,12 +87,61 @@ static const struct sensor_t sSensorList[] = {
 static int open_sensors(const struct hw_module_t* module, const char* id,
                         struct hw_device_t** device);
 
+static int is_tof_sensor_available(void)
+{
+    int fd = -1;
+    const char *dirname = "/dev/input";
+    char devname[PATH_MAX];
+    char *filename;
+    DIR *dir;
+    struct dirent *de;
+    int found = 0;
+
+    dir = opendir(dirname);
+    if(dir == NULL)
+        return 0;
+    strlcpy(devname, dirname, PATH_MAX);
+    filename = devname + strlen(devname);
+    *filename++ = '/';
+    LOGE("is_tof_sensor_available() called");
+    while((de = readdir(dir))) {
+        if(de->d_name[0] == '.' &&
+                (de->d_name[1] == '\0' ||
+                        (de->d_name[1] == '.' && de->d_name[2] == '\0')))
+            continue;
+        strcpy(filename, de->d_name);
+        fd = open(devname, O_RDONLY);
+        LOGE("devname: %s", devname);
+        if (fd>=0) {
+            char name[80];
+            if (ioctl(fd, EVIOCGNAME(sizeof(name) - 1), &name) < 1) {
+                name[0] = '\0';
+            }
+            if (!strcmp(name, SENSOR_PROXIMITY_DATANAME)) {
+                LOGE("Tof Sensor: %s found", SENSOR_PROXIMITY_DATANAME);
+                found  = 1;
+				close(fd);
+                break;
+            }
+            close(fd);
+            fd = -1;
+        }
+    }
+    closedir(dir);
+    return found;
+}
+
 
 static int sensors__get_sensors_list(struct sensors_module_t* module,
                                      struct sensor_t const** list) 
 {
-        *list = sSensorList;
+    if (is_tof_sensor_available()) {
+	   *list = sSensorList;
         return ARRAY_SIZE(sSensorList);
+    } else {
+        LOGE("No Tof sensor found!!!\n");
+        return 0;
+    }
 }
 
 static struct hw_module_methods_t sensors_module_methods = {

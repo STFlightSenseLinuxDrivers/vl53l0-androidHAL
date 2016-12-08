@@ -32,7 +32,7 @@
 /*****************************************************************************/
 
 ProximitySensor::ProximitySensor()
-    : SensorBase(NULL, "STM VL53L0 proximity sensor"),
+    : SensorBase(NULL, SENSOR_PROXIMITY_DATANAME),
       mEnabled(0),
 	  mBatchEnabled(0),
       mInputReader(4),
